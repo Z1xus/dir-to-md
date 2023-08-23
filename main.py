@@ -4,7 +4,7 @@ from pathlib import Path
 
 def process_file(path: Path, base_path: Path, out_file):
     rel_path = os.path.relpath(path, base_path)
-    rel_path = rel_path.replace('\\', '\\\\')
+    rel_path = rel_path.replace('\\', '/')
     ext = path.suffix.replace('.', '')
 
     out_file.write(f"{rel_path}:\n")
