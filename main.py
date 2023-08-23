@@ -22,21 +22,23 @@ def process_file(path: Path, base_path: Path, out_file):
 
     out_file.write("\n```\n\n")
 
-def process_folder(base_path: Path, folder_path: Path, out_file, gitignore_patterns=[], ignored_extensions=set()):
+def process_folder(base_path: Path, folder_path: Path, out_file, ignore_patterns=set(), ignored_extensions=set()):
     for item in folder_path.iterdir():
-        if ".git" in str(item) or item.suffix in ignored_extensions or any(item.match(pattern) for pattern in gitignore_patterns):
+        if item.name in {".git", ".gitignore", ".eslintignore", ".prettierignore"} or item.suffix in ignored_extensions or any(item.match(pattern) for pattern in ignore_patterns):
             continue
         if item.is_file():
             process_file(item, base_path, out_file)
         elif item.is_dir():
-            process_folder(base_path, item, out_file, gitignore_patterns, ignored_extensions)
+            process_folder(base_path, item, out_file, ignore_patterns, ignored_extensions)
 
-def get_gitignore_patterns(folder_path: Path):
-    gitignore_path = folder_path / ".gitignore"
-    if gitignore_path.is_file():
-        with gitignore_path.open(encoding='utf-8') as f:
-            return [line.strip() for line in f.readlines() if line.strip() and not line.startswith("#")]
-    return []
+def get_ignore_patterns(folder_path: Path, ignore_filenames):
+    patterns = []
+    for ignore_filename in ignore_filenames:
+        ignore_path = folder_path / ignore_filename
+        if ignore_path.is_file():
+            with ignore_path.open(encoding='utf-8') as f:
+                patterns += [line.strip() for line in f.readlines() if line.strip() and not line.startswith("#")]
+    return patterns
 
 def main():
     parser = argparse.ArgumentParser()
@@ -51,13 +53,15 @@ def main():
 
     # add any extensions you want to ignore here
     ignored_extensions = {".png", ".jpg", ".bmp", ".svg", ".pdf", ".tif", ".tiff", ".gif", ".mp4", ".webm", ".avi", ".mp3", ".aac", ".wav", ".ogg", ".7z", ".zip", ".rar", ".cube", ".exe"}
-    gitignore_patterns = get_gitignore_patterns(input_path)
+
+    ignore_filenames = [".gitignore", ".eslintignore", ".prettierignore"]
+    ignore_patterns = get_ignore_patterns(input_path, ignore_filenames)
 
     with output_path.open('w', encoding='utf-8') as out_file:
         if input_path.is_file() and input_path.suffix not in ignored_extensions:
             process_file(input_path, input_path.parent, out_file)
         elif input_path.is_dir():
-            process_folder(input_path, input_path, out_file, gitignore_patterns, ignored_extensions)
+            process_folder(input_path, input_path, out_file, ignore_patterns, ignored_extensions)
 
 if __name__ == "__main__":
     main()
